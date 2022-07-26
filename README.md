@@ -35,6 +35,8 @@ Una vez al mes (o cuando se considere necesario) se descarga la información del
 
     Donde RUTA_SALVAR es el directorio donde se quiera volcar la información.
     
+
+Los ficheros descargados tienen un nombre que incluye el mes y el año, por ejemplo, 2020-03.tar.gz. No se puede cambiar el nombre de esos ficheros porque en la parte de procesado se usa ese nombre para detectar el año. Cuando pedimos descargar el año 2020 se buscan ficheros 2020\*.tar.g
     
 
 ## Procesado de la información:
@@ -66,7 +68,14 @@ El script de python que se encarga de este punto necesita los siguiente parámet
 
 La mejor opción, en nuestra opinión, es ejecutar primero con place y luego con ted. De esta forma tenemos dos conjuntos de datos independintes con los datos en bruto y otro con los datos procesados. Si hace falta unirlos puede hacerse a través del identificador.
 
-Para más información sobre la estructura de datos generada revise el fichero de Estructura de datos.
+Para más información sobre la estructura de datos generada revise el fichero de Estructura de datos en la Wiki del proyecto.
+
+
+## Notas adicionales:
+
+Es importante tener en cuenta que el dataframe generado borra por completo la información anterior guardada. Por lo tanto, si queremos procesar el último año, 2022 en este caso, debemos grabar todos los datos aunque sólo queramos guardar los datos del último mes. *No se puede simplemente añadir la información del último mes*.
+
+
 
 
 
