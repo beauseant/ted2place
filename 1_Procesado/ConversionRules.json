@@ -1,0 +1,48 @@
+{
+	"CODED_DATA_SECTION,REF_OJS,DATE_PUB": "PublicacionesOficiales,Fecha de Publicacion",
+	"CODED_DATA_SECTION,REF_OJS,DATE_PUB":"PublicacionesOficiales,Fecha de envio de anuncio al diario oficial",	
+	"CODED_DATA_SECTION,CODIF_DATA,DS_DATE_DISPATCH":"PublicacionesOficiales,Fecha de Publicacion",
+
+	"CODED_DATA_SECTION,CODIF_DATA,AA_AUTHORITY_TYPE":"EntidadAdjudicadora,Tipo de administracion",
+	"CODED_DATA_SECTION,NOTICE_DATA,IA_URL_GENERAL":"EntidadAdjudicadora,Sitio web",
+
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,OFFICIALNAME":"EntidadAdjudicadora,Nombre",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,URL_GENERAL":"EntidadAdjudicadora,Sitio web'",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,COUNTRY":"EntidadAdjudicadora,Pais",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,POSTAL_CODE":"EntidadAdjudicadora,Codigo Postal",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,TOWN":"EntidadAdjudicadora,Poblacion",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,CONTACT_POINT":"EntidadAdjudicadora,Nombre para contacto",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,ADDRESS":"EntidadAdjudicadora,Calle",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,n2021:NUTS":"EntidadAdjudicadora,Ubicacion",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,E_MAIL":"EntidadAdjudicadora,Correo electronico",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,NATIONALID":"EntidadAdjudicadora,ID NIF ID Plataforma",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,PHONE":"EntidadAdjudicadora,Telefono",
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,FAX":"EntidadAdjudicadora,Fax",	
+	"CONTRACTING_BODY,ADDRESS_CONTRACTING_BODY,URL_BUYER":"EntidadAdjudicadora,URL perfil de contratante",	
+	"CONTRACTING_BODY,CA_TYPE,@VALUE": "EntidadAdjudicadora,TipoDeAministracion",
+
+	"CODED_DATA_SECTION,NOTICE_DATA,ISO_COUNTRY" : "LugarDeEjecucion,Pais",
+
+	"CODED_DATA_SECTION,NOTICE_DATA,NO_DOC_OJS": "DatosGeneralesDelExpediente,Numero del expediente",
+	"CODED_DATA_SECTION,CODIF_DATA,RP_REGULATION,@CODE":"DatosGeneralesDelExpediente,Pliego de clausulas administrativas,codigo",
+	"CODED_DATA_SECTION,CODIF_DATA,RP_REGULATION,#text":"DatosGeneralesDelExpediente,Pliego de clausulas administrativas,texto",
+	"CODED_DATA_SECTION,CODIF_DATA,TD_DOCUMENT_TYPE":"DatosGeneralesDelExpediente,Tipo de contrato",
+	"CODED_DATA_SECTION,CODIF_DATA,NC_CONTRACT_NATURE":"DatosGeneralesDelExpediente,Objeto del contrato",	
+
+
+	"CODED_DATA_SECTION,CODIF_DATA,AC_AWARD_CRIT,#text" : "CriterioDeAdjudicacion,Descripcion",
+
+	"CODED_DATA_SECTION,CODIF_DATA,TY_TYPE_BID,#text" : "ProcesoDeLicitacion,Descripcion",	
+	"CODED_DATA_SECTION,CODIF_DATA,PR_PROC,#text" : "ProcesoDeLicitacion,Tramitacion",
+
+	"CODED_DATA_SECTION,CODIF_DATA,DT_DATE_FOR_SUBMISSION":"PlazoDePresentacionDeOferta,Fecha",
+	"CODED_DATA_SECTION,CODIF_DATA,DT_DATE_FOR_SUBMISSION":"PlazoDePresentacionDeSolicitudes,Fecha",
+
+
+
+	"YEAR":"Ted_year",
+	"DOC_ID":"Ted_doc_id",
+	"FORM_ID":"Ted_form_id",
+	"RECEPTION_ID":"Ted_reception_id"
+}
+

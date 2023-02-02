@@ -18,6 +18,37 @@ def openTarFile ( filename ):
 
 
 
+def getNested(data, *args):
+    if args and data:
+        element  = args[0]
+        if element:
+            value = data.get(element)
+            return value if len(args) == 1 else getNested(value, *args[1:])
+
+
+def invertNested (test_str, sep):
+  if sep not in test_str:
+    return test_str
+  key, val = test_str.split(sep, 1)
+  return {key: invertNested (val, sep)}            
+
+
+def merge(a, b, path=None):
+    "merges b into a"
+    if path is None: path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] == b[key]:
+                pass # same leaf value
+            else:
+                raise Exception('Conflict at %s' % '.'.join(path + [str(key)]))
+        else:
+            a[key] = b[key]
+    return a
+
+
 
 class TranslateMachine:
 
@@ -27,7 +58,8 @@ class TranslateMachine:
     __keysToSaveMainTechnicalSection = ['RECEPTION_ID','DELETION_DATE']
     __keysTranslateTechnicalSection = {'RECEPTION_ID':'RECEPTION_ID', 'DELETION_DATE':'DELETION_DATE'}
 
-    __keysTranslatePlace = {'MAIN': {'YEAR': 'Ted_year', 'DOC_ID':'Ted_doc_id','FORM_ID':'Ted_form_id','RECEPTION_ID':'Ted_reception_id'}}
+    
+    __conversionRules = {}
 
 
     __format = ''
@@ -45,6 +77,14 @@ class TranslateMachine:
     #    todos los campos; format = ted.
     def __init__ ( self, format ):
         assert format in ['all', 'place', 'ted'], 'save parameter must be all, ted or place'
+
+        try:
+            with open('ConversionRules.json', 'r') as fp:
+                self.__conversionRules = json.load(fp)
+        except Exception as E:
+            print ('error abriendo fichero de conversión a Place, %s' % E)
+            exit()
+
         self.__format = format
 
 
@@ -58,175 +98,96 @@ class TranslateMachine:
         return {self.__keysTranslateTechnicalSection[key]: data[key] for key in self.__keysToSaveMainTechnicalSection }    
 
 
-    ''''
-    def  translateNoticeData (self, data):
-        notData =  {self.__keysTranslateNoticeData[key]: data[key] for key in self.__keysToSaveNoticeData }    
-        cpvList = []
-
-        if type(data['ORIGINAL_CPV']) == list:
-            for cpv in data['ORIGINAL_CPV']:
-                cpvList.append ({'CODE':cpv['@CODE'],'TEXT':cpv['#text']} )
-
-            notData['ORIGINAL_CPV'] = cpvList
-        else:
-            cpvList.append ({'CODE':data['ORIGINAL_CPV']['@CODE'],'TEXT':data['ORIGINAL_CPV']['#text']})
-
-        notData['ORIGINAL_CPV'] = cpvList
-        
-        uriList = []
-
-        if type(data['URI_LIST']['URI_DOC']) == list:
-            uriList = [uri['#text'] for uri in data['URI_LIST']['URI_DOC']]
-        else:
-            uriList.append ([data['URI_LIST']['URI_DOC']['#text'] ])
-
-        #salvar la lista entera da problemas en dataframe de spark
-        #if type(notData['URI_LIST'== list:
-        #    notData['URI_LIST'] xuriList[0][0]
-
-        return notData 
-    '''
-
-    def __translateCodedDataSection (self, data):
-
-        placeData = {}
-
-        #PARTE REF_OJS:
-        #######################################
-        placeData['PublicacionesOficiales'] = {'Fecha de Publicacion':data['REF_OJS']['DATE_PUB']}
-        placeData['PublicacionesOficiales'] = {'Fecha de envio de anuncio al diario oficial':data['REF_OJS']['DATE_PUB']}
-        #######################################
-
-        #NOTICE DATA:
-        #######################################
-
-        placeData['EntidadAdjudicadora'] = {'URL perfil de contratante':data['NOTICE_DATA'].get('IA_URL_ETENDERING','')}
-        placeData['DatosGeneralesDelExpediente'] = {'Numero del expediente': data['NOTICE_DATA'].get('NO_DOC_OJS','')}
-
-        if type(data['NOTICE_DATA']['ORIGINAL_CPV']) == list:
-            listCPVs =  [{'value' : cpv['@CODE'],'text':cpv['#text']} for cpv in data['NOTICE_DATA']['ORIGINAL_CPV']]
-        else:
-            listCPVs =  [{'value' : data['NOTICE_DATA']['ORIGINAL_CPV']['@CODE'],'text':data['NOTICE_DATA']['ORIGINAL_CPV']['#text']} ]
-
-        placeData['DatosGeneralesDelExpediente'] = {'Clasificacion CPV': listCPVs}
-
-        placeData['EntidadAdjudicadora'].update ({'Sitio web': data['NOTICE_DATA'].get('IA_URL_GENERAL','')})        
-        placeData['LugarDeEjecucion'] = {'Pais': data['NOTICE_DATA']['ISO_COUNTRY']['@VALUE'] if  'ISO_COUNTRY' in data['NOTICE_DATA'].keys() else ''}
-
-        placeData['DatosGeneralesDelExpediente'].update ({'Valor estimado del contrato':data['NOTICE_DATA'].get('VALUES','')})
-
-        if 'n2021:CA_CE_NUTS' in data['NOTICE_DATA']:
-            if type(data['NOTICE_DATA']['n2021:CA_CE_NUTS']) == list:
-                listCACE = [ {'value': cace['@CODE'],'text':cace['#text']} for cace in data['NOTICE_DATA']['n2021:CA_CE_NUTS']]
-            else:
-                listCACE = [ {'value': data['NOTICE_DATA']['n2021:CA_CE_NUTS']['@CODE'],'text':data['NOTICE_DATA']['n2021:CA_CE_NUTS']['@CODE']} if 'n2021:CA_CE_NUTS' in  data['NOTICE_DATA'].keys()  else '']
-        else:
-            listCACE = []
-
-        placeData['EntidadAdjudicadora'].update ( {'Ubicacion organica': listCACE})
-
-
-        #######################################
-
-
-        #CODIF_DATA
-        #######################################
-
-        placeData['CriterioDeAdjudicacion'] = {}
-        placeData['CriterioDeAdjudicacion'].update ({'Descripcion': {'text': data['CODIF_DATA']['AC_AWARD_CRIT']['#text'], 'value':data['CODIF_DATA']['AC_AWARD_CRIT']['@CODE'] } if 'AC_AWARD_CRIT' in data['CODIF_DATA'].keys() else '' })
-
-        placeData['ProcesoDeLicitacion'] = {}
-        placeData['ProcesoDeLicitacion'].update ({'Descripcion': {'text': data['CODIF_DATA']['TY_TYPE_BID']['#text'], 'value':data['CODIF_DATA']['TY_TYPE_BID']['@CODE'] } if 'TY_TYPE_BID' in data['CODIF_DATA'].keys() else '' })
-        placeData['ProcesoDeLicitacion'].update ({'Tramitacion': {'text': data['CODIF_DATA']['PR_PROC']['#text'], 'value':data['CODIF_DATA']['PR_PROC']['@CODE'] } if 'PR_PROC' in data['CODIF_DATA'].keys() else '' })
-
-        placeData['EntidadAdjudicadora'].update ({'Tipo de administracion': {'text': data['CODIF_DATA']['AA_AUTHORITY_TYPE']['#text'], 'value':data['CODIF_DATA']['AA_AUTHORITY_TYPE']['@CODE'] } if 'AA_AUTHORITY_TYPE' in data['CODIF_DATA'].keys() else '' })
-
-
-        placeData['PublicacionesOficiales'].update ({'Fecha de Publicación': data['CODIF_DATA'].get('DS_DATE_DISPATCH','')})
-
-        placeData['DatosGeneralesDelExpediente'].update ({'Pliego de clausulas administrativas': {'text': data['CODIF_DATA']['RP_REGULATION']['#text'], 'value':data['CODIF_DATA']['RP_REGULATION']['@CODE'] } if 'RP_REGULATION' in data['CODIF_DATA'].keys() else '' })
-        placeData['DatosGeneralesDelExpediente'].update ({'Tipo de contrato': {'text': data['CODIF_DATA']['TD_DOCUMENT_TYPE']['#text'], 'value':data['CODIF_DATA']['TD_DOCUMENT_TYPE']['@CODE'] } if 'TD_DOCUMENT_TYPE' in data['CODIF_DATA'].keys() else '' })
-        placeData['DatosGeneralesDelExpediente'].update ({'Objeto del contrato': {'text': data['CODIF_DATA']['NC_CONTRACT_NATURE']['#text'], 'value':data['CODIF_DATA']['NC_CONTRACT_NATURE']['@CODE'] } if 'NC_CONTRACT_NATURE' in data['CODIF_DATA'].keys() else '' })
-
-
-        try:
-            if type(data['CODIF_DATA']['MA_MAIN_ACTIVITIES']) == list:
-                listActi =[ {'text': act['#text'], 'value':act['@CODE']} for act in data['CODIF_DATA']['MA_MAIN_ACTIVITIES']]
-            else:
-                listActi = [{'text': data['CODIF_DATA']['MA_MAIN_ACTIVITIES']['#text'], 'value':data['CODIF_DATA']['MA_MAIN_ACTIVITIES']['@CODE'] } if 'MA_MAIN_ACTIVITIES' in data['CODIF_DATA'].keys() else '' ]
-        except:
-            listActi = []
-
-        placeData['EntidadAdjudicadora'].update ({'Actividad': listActi})
-
-
-
-        placeData['PlazoDePresentacionDeOferta'] = {'Fecha': data['CODIF_DATA'].get('DT_DATE_FOR_SUBMISSION','')}
-        placeData['PlazoDePresentacionDeSolicitudes'] = {'Fecha': data['CODIF_DATA'].get('DT_DATE_FOR_SUBMISSION','')}
-
-        #######################################
-
-        self.__placeData.update (placeData)
-
-
-    def __translateContractingBody (self, data):
-
-        
-        ##AMPLIAMOS DATOS DE LA EntidadAdjudicadora:
-        #############################################
-
-        entidadAd = {}
-        entidadAd['TipoDeAministracion'] = data['CA_TYPE']['@VALUE'] if 'CA_TYPE' in data.keys() else '' 
-
-        if self.__placeData['EntidadAdjudicadora']['Actividad'] == '':
-            entidadAd['Actividad'] =  data['CA_ACTIVITY']['@VALUE'] if 'CA_ACTIVITY' in data.keys() else '' 
-        
-        if self.__placeData['EntidadAdjudicadora']['URL perfil de contratante'] == '':
-            entidadAd['URL Perfil del contratante'] = data.get ('URL_DOCUMENT', '')
-
-        addContBody = data['ADDRESS_CONTRACTING_BODY']
-
-        entidadAd['Nombre']                     = addContBody.get ('OFFICIALNAME', '')        
-        entidadAd['Sitio web']                  = addContBody.get ('URL_GENERAL', '')        
-        entidadAd['Pais']                       = addContBody.get ('COUNTRY', '')   
-        entidadAd['Codigo Postal']              = addContBody.get ('POSTAL_CODE', '')   
-        entidadAd['Poblacion']                  = addContBody.get ('TOWN', '')   
-        entidadAd['Nombre para contacto']       = addContBody.get ('CONTACT_POINT', '')   
-        entidadAd['Calle']                      = addContBody.get ('ADDRESS', '')   
-        entidadAd['Ubicacion']                  = addContBody.get ('n2021:NUTS', '')   
-        entidadAd['Correo electronico']         = addContBody.get ('E_MAIL', '')   
-        entidadAd['ID|NIF|ID Plataforma']       = addContBody.get ('NATIONALID', '')   
-        entidadAd['Telefono']                   = addContBody.get ('PHONE', '')   
-        entidadAd['URL perfil de contratante']  = addContBody.get ('URL_BUYER', '')   
-        entidadAd['Fax']                        = addContBody.get ('FAX', '')   
-
-        self.__placeData['EntidadAdjudicadora'].update (entidadAd)
-
+   
     def __translateToPlace ( self ):
 
         
         data = self.__tedData
-
-        new_data = {}
-
+        new_data = {}        
         self.__placeData = {}
-        self.__placeData.update ( {self.__keysTranslatePlace['MAIN'][key] : data[key] for key in self.__keysTranslatePlace['MAIN'] } )
-        #patata =self.__tedData
-        #patata2 = self.__keysTranslatePlace
-        #import ipdb ; ipdb.set_trace()
 
-        #cada una de estas funciones va actualizando el campo self.__placeData.
-        self.__translateCodedDataSection (data['CODED_DATA_SECTION'])
-        #self.__translateContractingBody  (data['CONTRACTING_BODY'])
 
+        #preparamos los campos de data que pueden dar problemas:
+        #cpvs = {'DatosGeneralesDelExpediente':{'Clasificacion CPV':''}}
+        if type(data['CODED_DATA_SECTION']['NOTICE_DATA']['ORIGINAL_CPV']) == list:
+            cpvs =  ([{'value' : cpv['@CODE'],'text':cpv['#text']} for cpv in data['CODED_DATA_SECTION']['NOTICE_DATA']['ORIGINAL_CPV']])
+        else:
+            cpvs =  ([{'value' : data['CODED_DATA_SECTION']['NOTICE_DATA']['ORIGINAL_CPV']['@CODE'],'text':data['CODED_DATA_SECTION']['NOTICE_DATA']['ORIGINAL_CPV']['#text']} ])
+
+        if 'n2021:CA_CE_NUTS' in data['CODED_DATA_SECTION']['NOTICE_DATA']:
+            if type(data['CODED_DATA_SECTION']['NOTICE_DATA']['n2021:CA_CE_NUTS']) == list:
+                listCACE = [ {'value': cace['@CODE'],'text':cace['#text']} for cace in data['CODED_DATA_SECTION']['NOTICE_DATA']['n2021:CA_CE_NUTS']]
+            else:
+                listCACE = [ {'value': data['CODED_DATA_SECTION']['NOTICE_DATA']['n2021:CA_CE_NUTS']['@CODE'],'text':data['CODED_DATA_SECTION']['NOTICE_DATA']['n2021:CA_CE_NUTS']['@CODE']} if 'n2021:CA_CE_NUTS' in  data['CODED_DATA_SECTION']['NOTICE_DATA'].keys()  else '']
+        else:
+            listCACE = []
+
+        try:
+            if type(data['CODED_DATA_SECTION']['CODIF_DATA']['MA_MAIN_ACTIVITIES']) == list:
+                listActi =[ {'text': act['#text'], 'value':act['@CODE']} for act in data['CODED_DATA_SECTION']['CODIF_DATA']['MA_MAIN_ACTIVITIES']]
+            else:
+                listActi = [{'text': data['CODED_DATA_SECTION']['CODIF_DATA']['MA_MAIN_ACTIVITIES']['#text'], 'value':data['CODED_DATA_SECTION']['CODIF_DATA']['MA_MAIN_ACTIVITIES']['@CODE'] } if 'MA_MAIN_ACTIVITIES' in data['CODED_DATA_SECTION']['CODIF_DATA'].keys() else '' ]
+        except:
+            listActi = []
+
+        currency = json.dumps (data['CODED_DATA_SECTION']['NOTICE_DATA'].get ('VALUES',''))
+        if currency == '""':
+            currency = 'NONE'
+
+        '''
+        if 'VALUES' in data['CODED_DATA_SECTION']['NOTICE_DATA']:
+            currency = json.dumps (data['CODED_DATA_SECTION']['NOTICE_DATA']['VALUES'])
+            if 'VALUE' in :
+            try:
+                currency = {
+                                'tipo':data['CODED_DATA_SECTION']['NOTICE_DATA']['VALUES']['VALUE']['@TYPE'],
+                                'importe':data['CODED_DATA_SECTION']['NOTICE_DATA']['VALUES']['VALUE']['#text'],
+                                'moneda':data['CODED_DATA_SECTION']['NOTICE_DATA']['VALUES']['VALUE']['@CURRENCY']
+                            }
+            except:                
+                potato =  self.__placeData
+                import ipdb ; ipdb.set_trace ()
+        '''
+
+        for key in self.__conversionRules.keys():
+            datoNested = getNested (data, *key.split(','))
+            if datoNested == None:
+                datoNested = 'NONE'
+
+            valorNested = self.__conversionRules [key] + ',' + str(datoNested)
+            self.__placeData = merge (self.__placeData , (invertNested (valorNested, ',')) )
+
+
+
+        self.__placeData['DatosGeneralesDelExpediente']['Clasificacion CPV'] = cpvs
+        self.__placeData['DatosGeneralesDelExpediente']['Valor estimado del contrato'] = currency
+
+        self.__placeData['EntidadAdjudicadora']['Ubicacion organica'] = listCACE
+        self.__placeData['EntidadAdjudicadora']['Actividad'] = listActi
+
+        '''
+        if len(self.__placeData['EntidadAdjudicadora']['Actividad']) == 0:
+            import ipdb ; ipdb.set_trace()
+            self.__placeData['EntidadAdjudicadora']['Actividad'] =  data['CONTRACTING_BODY']['CA_ACTIVITY']['@VALUE'] if 'CA_ACTIVITY' in data['CONTRACTING_BODY'].keys() else '' 
         
+        if self.__placeData['EntidadAdjudicadora']['URL perfil de contratante'] == '':
+            self.__placeData['EntidadAdjudicadora']['URL perfil de contratante']['URL Perfil del contratante'] = data['CONTRACTING_BODY'].get ('URL_DOCUMENT', '')
+        
+        '''
+        #__translateContractingBody
+
         #al final tenemos dos opciones, queremos salvar sólo los datos de place o queremos adjuntar a los datos de place los de ted
+
+        #potato =  self.__placeData
+        #import ipdb ; ipdb.set_trace ()
+
+
         if self.__format == 'place':
             data = self.__placeData
         else:
             data.update (self.__placeData)
 
-
+        
         return data
 
         
@@ -576,6 +537,8 @@ class TranslateMachine:
 
         if self.__format != 'ted':
             self.__translateToPlace ()
+            #potato = self.__translateToPlace ()
+            #import ipdb ; ipdb.set_trace()
             return self.__placeData
         else:
             return data

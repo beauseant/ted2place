@@ -2,7 +2,7 @@ import argparse
 import glob
 
 import sys
-sys.path.append('/export/usuarios_ml4ds/sblanco/readTEDXML/pySpark/lib')
+sys.path.append('./lib')
 from utils import openTarFile
 from utils import TranslateMachine
 
